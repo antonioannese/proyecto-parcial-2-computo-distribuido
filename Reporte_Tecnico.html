@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reporte técnico — Calculadora ADS</title>
+<style>
+  @page { size: Letter; margin: 18mm 16mm 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: #1c1f24;
+    font-family: "Palatino Linotype", Palatino, "Times New Roman", serif;
+    font-size: 11.5pt;
+    line-height: 1.45;
+  }
+  h1 { font-size: 22pt; line-height: 1.15; margin: 0 0 8px; font-weight: 600; }
+  h2 { font-size: 14.5pt; margin: 22px 0 8px; padding-top: 4px; border-top: 1px solid #c8c2b8; font-weight: 600; }
+  h3 { font-size: 12.5pt; margin: 16px 0 6px; font-weight: 600; }
+  p { margin: 0 0 8px; }
+  ul, ol { margin: 4px 0 10px; padding-left: 1.2em; }
+  li { margin: 2px 0; }
+  code, pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9pt; }
+  pre {
+    background: #f6f4f0;
+    border: 1px solid #e0dbd2;
+    padding: 8px 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 10.5pt; }
+  th, td { border: 1px solid #cfc8be; padding: 4px 7px; text-align: left; vertical-align: top; }
+  th { background: #f3efe8; font-weight: 600; }
+  .portada { margin-top: 46px; }
+  .portada .materia { letter-spacing: 0.08em; text-transform: uppercase; font-size: 11pt; color: #6b3a32; margin-bottom: 18px; }
+  .portada .meta { margin-top: 28px; font-size: 12pt; }
+  .portada .meta p { margin: 2px 0; }
+  .figura {
+    border: 1px solid #cfc8be;
+    padding: 12px 10px 8px;
+    margin: 10px 0 12px;
+    page-break-inside: avoid;
+  }
+  .figura .malla {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .nodo {
+    border: 1.5px solid #6b3a32;
+    padding: 6px 8px;
+    background: #fbf8f5;
+  }
+  .nodo strong { display: block; margin-bottom: 3px; }
+  .celulas { font-size: 10pt; color: #333; }
+  .pie-figura { font-size: 10pt; color: #444; margin-top: 8px; }
+  .nota { font-size: 10.5pt; }
+</style>
+</head>
+<body>
+
+<section class="portada">
+  <p class="materia">Universidad Panamericana · Cómputo Distribuido</p>
+  <h1>Adecuación de la calculadora a una arquitectura ADS</h1>
+  <p>Proyecto del segundo parcial. Reporte técnico.</p>
+  <div class="meta">
+    <p><strong>Antonio Annese Caballero</strong></p>
+    <p>ID 0266972</p>
+    <p>20 de octubre de 2026</p>
+  </div>
+</section>
+
+<h2>1. Objetivo</h2>
+<p>
+La calculadora del primer parcial resolvía suma, resta, multiplicación y división con una arquitectura de tres capas: un cliente gráfico, un middleware y servidores de cálculo. Este proyecto conserva esas cuatro operaciones y sustituye esa arquitectura por un sistema autónomo descentralizado. El acceso a cada servicio ya no pasa por un proceso que conozca a todos los demás. Pasa por un Campo de Datos que difunde mensajes, y por un Código de Contenido con el que cada célula decide, por su cuenta, si el mensaje le corresponde.
+</p>
+<p>
+La configuración que se demuestra tiene cuatro nodos en malla completa y veinte células: cuatro interfaces gráficas y dieciséis servidores, cuatro de cada operación. El mismo programa de nodo y los mismos programas de célula sirven para otro número de instancias. Los identificadores, los puertos y la lista de vecinos se dan al arrancar; no están escritos como un tamaño fijo del sistema.
+</p>
+
+<h2>2. Qué cambió respecto al primer parcial</h2>
+<p>
+En el primer parcial el middleware era el punto por el que pasaba toda solicitud y todo resultado. Sabía qué clientes y qué servidores estaban registrados, y les reenviaba el mensaje. Si ese proceso se detenía, la calculadora dejaba de funcionar.
+</p>
+<p>
+En esta versión no existe ese proceso. Un nodo del Campo de Datos no calcula, no elige qué servidor debe responder y no guarda un directorio global de células. Acepta conexiones de otros nodos y de las células que se le conectan, y retransmite cada mensaje de datos una sola vez. La célula servidora mira el Código de Contenido. Si es el de su operación, participa. Si es el de otra, lo ignora. La célula cliente publica la solicitud y, cuando ve una respuesta cuyo identificador de referencia es el de su solicitud, muestra el resultado.
+</p>
+
+<h2>3. Componentes</h2>
+<p>Hay tres programas, cada uno en su propio proceso.</p>
+<table>
+  <tr><th>Programa</th><th>Papel</th><th>Clase principal</th></tr>
+  <tr><td>Nodo del Campo de Datos</td><td>Forma la malla, acepta células y difunde mensajes.</td><td><code>NodoApp</code></td></tr>
+  <tr><td>Célula cliente</td><td>Captura los operandos, publica la solicitud y muestra la respuesta que le corresponde.</td><td><code>ClienteApp</code></td></tr>
+  <tr><td>Célula servidor</td><td>Se configura para una operación y, si le toca atenderla, calcula y publica la respuesta.</td><td><code>ServidorApp</code></td></tr>
+</table>
+<p>
+La ventana del nodo muestra dos contadores: los mensajes que sí difundió y los duplicados que descartó para no dejarlos circular. La ventana del cliente muestra los dos operandos, el resultado y una bitácora. La ventana del servidor anuncia el servicio con un lema («YO SÉ SUMAR», «YO SÉ RESTAR», «YO SÉ MULTIPLICAR» o «YO SÉ DIVIDIR»), su huella y el código que escucha. La huella es un identificador de nueve dígitos, distinto en cada proceso, y viaja en los mensajes de esa célula.
+</p>
+
+<h2>4. Topología</h2>
+<p>
+Los cuatro nodos de la demostración escuchan en los puertos 7401, 7402, 7403 y 7404, todos en la misma máquina. Cada nodo abre una conexión TCP hacia los otros tres. La malla es completa: el camino entre dos nodos puede ser directo. Cada nodo, además, tiene conectadas cinco células: la interfaz, la suma, la resta, la multiplicación y la división.
+</p>
+
+<div class="figura">
+  <div class="malla">
+    <div class="nodo"><strong>Nodo n1 · 7401</strong><span class="celulas">gui-1, suma-1, resta-1, multi-1, div-1</span></div>
+    <div class="nodo"><strong>Nodo n2 · 7402</strong><span class="celulas">gui-2, suma-2, resta-2, multi-2, div-2</span></div>
+    <div class="nodo"><strong>Nodo n3 · 7403</strong><span class="celulas">gui-3, suma-3, resta-3, multi-3, div-3</span></div>
+    <div class="nodo"><strong>Nodo n4 · 7404</strong><span class="celulas">gui-4, suma-4, resta-4, multi-4, div-4</span></div>
+  </div>
+  <p class="pie-figura">Figura 1. Cada nodo está unido a los otros tres. Las células solo hablan con el nodo al que se conectaron; entre ellas no hay canales directos.</p>
+</div>
+
+<p>
+Como los dos extremos de un par pueden intentar la conexión al mismo tiempo, a veces nacen dos TCP para el mismo vecino. El nodo se queda con una sola: la que inició el nodo de identificador menor. La otra se cierra. Los mensajes que hayan alcanzado a duplicarse en ese instante los corta el registro de identificadores, descrito más adelante. Si un enlace se cae, el nodo vuelve a intentar la conexión con ese vecino. No hace falta reiniciar el resto de la malla.
+</p>
+
+<h2>5. Protocolo de conexión</h2>
+<p>
+El saludo no se difunde. Solo vive en el TCP que se acaba de abrir. Una trama es una línea de texto UTF-8 con el prefijo <code>ADS1</code>.
+</p>
+<p>Un nodo que llama a otro envía:</p>
+<pre>ADS1|HELLO|entidad=NODO|id=n1|puerto=7401</pre>
+<p>El nodo que acepta responde:</p>
+<pre>ADS1|HELLO_OK|id=n2|detalle=aceptado</pre>
+<p>Una célula envía:</p>
+<pre>ADS1|HELLO|entidad=CELULA|rol=SERVIDOR|id=suma-1|huella=902159599|servicio=SUMA</pre>
+<p>
+El rol de una interfaz es <code>GUI</code> y no trae servicio. El nodo contesta <code>HELLO_OK</code> con su propio identificador, anota la célula entre sus conexiones locales y, a partir de ahí, le entrega los mensajes del Campo de Datos. Cuando el socket de una célula se cierra, ese nodo publica un mensaje <code>WITHDRAW</code> para que el resto sepa que esa huella ya no está.
+</p>
+<p>
+Nada de este saludo exige que existan exactamente cuatro nodos o cuatro células de cada tipo. Un quinto nodo se arranca con el mismo programa, otro puerto y una lista de vecinos. Una quinta célula de suma se arranca indicando el nodo al que quiere conectarse y el servicio <code>SUMA</code>.
+</p>
+
+<h2>6. Mensajes y Códigos de Contenido</h2>
+<p>
+Lo que circula por la malla es un mensaje de tipo <code>DATO</code>. El nodo no interpreta el código: lo copia hacia sus vecinos y hacia sus células, excepto hacia el enlace por el que acaba de llegar. La célula sí lo interpreta.
+</p>
+<table>
+  <tr><th>Campo</th><th>Uso</th></tr>
+  <tr><td><code>id</code></td><td>Identificador único de este mensaje. En una respuesta es nuevo; no se reutiliza el de la solicitud.</td></tr>
+  <tr><td><code>ref</code></td><td>En una respuesta o en un reclamo, el <code>id</code> de la solicitud original. En una solicitud va vacío.</td></tr>
+  <tr><td><code>cc</code></td><td>Código de Contenido.</td></tr>
+  <tr><td><code>op1</code>, <code>op2</code></td><td>Operandos, en una solicitud y copiados en la respuesta.</td></tr>
+  <tr><td><code>res</code></td><td>Resultado, solo en una respuesta correcta.</td></tr>
+  <tr><td><code>estado</code>, <code>detalle</code></td><td><code>OK</code> o <code>ERROR</code>, y el motivo si la operación no se pudo hacer.</td></tr>
+  <tr><td><code>origen</code>, <code>huella</code></td><td>Célula que creó el mensaje y su huella.</td></tr>
+  <tr><td><code>hops</code></td><td>Saltos ya dados. El nodo lo incrementa al reenviar.</td></tr>
+  <tr><td><code>ts</code></td><td>Hora local de quien creó el mensaje.</td></tr>
+</table>
+<p>Los valores se escapan para que un <code>|</code>, un <code>=</code> o un salto de línea no rompan la trama.</p>
+
+<table>
+  <tr><th>Operación</th><th>Solicitud</th><th>Respuesta</th><th>Reclamo</th></tr>
+  <tr><td>Suma</td><td>SUM_REQ</td><td>SUM_RES</td><td>SUM_CLAIM</td></tr>
+  <tr><td>Resta</td><td>SUB_REQ</td><td>SUB_RES</td><td>SUB_CLAIM</td></tr>
+  <tr><td>Multiplicación</td><td>MUL_REQ</td><td>MUL_RES</td><td>MUL_CLAIM</td></tr>
+  <tr><td>División</td><td>DIV_REQ</td><td>DIV_RES</td><td>DIV_CLAIM</td></tr>
+</table>
+<p>
+<code>PRESENCE</code> y <code>WITHDRAW</code> no son operaciones. El primero lo publica una célula al conectarse, para anunciarse en el Campo de Datos. El segundo lo publica el nodo cuando esa célula se desconecta. Los reclamos (<code>*_CLAIM</code>) tampoco son el resultado: sirven para que varias células del mismo servicio se pongan de acuerdo sin un coordinador. La sección 8 explica por qué existen.
+</p>
+<p>Una solicitud de suma se ve así:</p>
+<pre>ADS1|DATO|id=8f3a1c0e...|ref=|cc=SUM_REQ|origen=gui-1|huella=228579469|op1=9|op2=4|res=|estado=|detalle=|hops=0|ts=16:50:12</pre>
+<p>La respuesta conserva la referencia y trae un identificador propio:</p>
+<pre>ADS1|DATO|id=b71e09aa...|ref=8f3a1c0e...|cc=SUM_RES|origen=suma-2|huella=984499791|op1=9|op2=4|res=13|estado=OK|detalle=ok|hops=0|ts=16:50:12</pre>
+
+<h2>7. Broadcast y prevención de ciclos</h2>
+<p>
+Una célula solo escribe en el nodo al que está conectada. Ese nodo entrega el mensaje a sus otras células y a sus nodos vecinos. Cada vecino hace lo mismo. En una malla completa el mismo mensaje regresa por otro camino: n1 se lo manda a n2 y a n3, y n2 también se lo manda a n3. Si nadie lo detiene, el mensaje no termina.
+</p>
+<p>
+Cada nodo guarda los identificadores que ya procesó. Si un mensaje vuelve con el mismo <code>id</code>, el nodo no lo entrega otra vez y escribe en la bitácora «CICLO EVITADO». El contador ámbar de la ventana es exactamente ese número. Además, si el campo <code>hops</code> pasa de 16, el mensaje se tira. Dieciséis no es el tamaño de la red: es un tope por si el registro ya olvidó un identificador viejo y ese mensaje siguiera dando vueltas. El registro olvida identificadores con el tiempo para no crecer sin límite; en la demostración el corte ocurre por el identificador, mucho antes de esa depuración. Un mensaje sin <code>id</code> ni siquiera entra al registro: se rechaza.
+</p>
+<p>
+La bitácora distingue vecinos de células. Si el mensaje llegó desde otro nodo, se reenvía a los vecinos restantes y no de vuelta al emisor. Por eso una línea puede decir «2 vecinos» aunque la malla tenga tres enlaces. El estado «Malla completa · 3/3 pares» es el que indica que los tres enlaces están arriba. El «2» de un reenvío solo dice que uno de esos tres fue quien entregó el mensaje.
+</p>
+
+<h2>8. Una solicitud, varias células, una respuesta</h2>
+<p>
+En la demostración hay cuatro células de suma, una en cada nodo. El broadcast les entrega a las cuatro el mismo <code>SUM_REQ</code>. Si las cuatro calcularan y publicaran <code>SUM_RES</code>, el cliente vería cuatro resultados iguales y el Campo de Datos cargaría respuestas que no aportan nada. Hace falta una regla que elija una célula sin nombrar a un jefe.
+</p>
+<p>La regla es local y usa solo lo que ya viaja en el Campo de Datos:</p>
+<ol>
+  <li>La célula recibe un <code>*_REQ</code> de su propio servicio. Si es de otro servicio, escribe que lo ignora y no hace nada más.</li>
+  <li>A los 60 ms publica un reclamo, <code>*_CLAIM</code>, con su huella. No calcula todavía.</li>
+  <li>Durante los siguientes 320 ms junta las huellas que se postularon a esa misma solicitud, incluida la suya.</li>
+  <li>Si su huella es la menor de ese conjunto, en orden de texto, calcula y publica la respuesta. Las huellas de la demostración tienen nueve dígitos, así que ese orden coincide con el numérico.</li>
+  <li>Si su huella no es la menor, no responde. Deja anotado a quién le tocó y programa un respaldo.</li>
+  <li>El respaldo de la siguiente huella espera 900 ms, y cada huella posterior suma 250 ms. Si en ese tiempo aparece la respuesta, el respaldo se cancela. Si no aparece, porque la célula ganadora se cayó después de postularse, la siguiente calcula y publica ella la respuesta.</li>
+</ol>
+<p>
+Nadie pregunta a un registro central quién está vivo. La lista de postuladas es el conjunto de reclamos que de verdad llegaron. Una célula apagada no se postula, así que no puede ganar. Una célula que se postula y luego no responde deja el turno a la siguiente.
+</p>
+<p>
+Hay una segunda barrera en el cliente. La respuesta trae en <code>ref</code> el identificador de la solicitud. El cliente solo pinta el resultado si ese <code>ref</code> es de una solicitud suya, y solo la primera vez. Otra <code>SUM_RES</code> con el mismo <code>ref</code> queda en la bitácora como duplicada y no cambia el número en pantalla. Así, aunque dos células llegaran a responder en una carrera muy justa, la interfaz no muestra dos resultados.
+</p>
+<p>
+La división entre cero no es una excepción que tire el proceso. La célula que atiende publica <code>DIV_RES</code> con <code>estado=ERROR</code> y el detalle «División entre cero.» El cliente lo muestra como error.
+</p>
+
+<h2>9. Recorrido de una operación</h2>
+<ol>
+  <li>En una célula cliente se escriben los operandos y se elige la operación.</li>
+  <li>La célula crea un <code>id</code> nuevo y un <code>DATO</code> con el Código de Contenido de solicitud, y se lo entrega a su nodo.</li>
+  <li>El nodo lo difunde a sus vecinos y al resto de sus células. Esos vecinos lo difunden a su vez.</li>
+  <li>Cada nodo que ya vio ese <code>id</code> lo descarta.</li>
+  <li>Las células servidor leen el código. Las de otra operación lo ignoran. Las de la operación pedida se postulan.</li>
+  <li>La de huella menor publica la respuesta, con <code>id</code> nuevo, <code>ref</code> de la solicitud, el resultado y el Código de Contenido de respuesta.</li>
+  <li>La respuesta también se difunde. No va dirigida a un cliente: cualquier interfaz la recibe.</li>
+  <li>Solo la interfaz que originó la solicitud la presenta. Las demás la ven en la bitácora como tráfico del Campo de Datos.</li>
+</ol>
+
+<h2>10. Descentralización</h2>
+<p>
+Ninguna función de las que el sistema necesita para seguir calculando vive en un solo proceso. La malla se arma entre pares: cada nodo conoce a los vecinos que le pasaron al arrancar y se conecta a ellos. El reenvío lo hace el nodo que tiene el mensaje, con su propia memoria de identificadores. La elección de quién responde la hacen las células comparando huellas, no un asignador. Si se detiene un servidor de suma, otra célula de suma atiende la siguiente solicitud. Si se detiene un nodo, las células que colgaban de él pierden el enlace, y los nodos restantes siguen difundiendo entre sí. El cliente de un nodo que sigue en pie puede sumar, restar, multiplicar y dividir.
+</p>
+<p>
+Eso no significa que una célula funcione sin ningún nodo. Cada célula necesita el nodo al que se conectó, porque ese es su puerta al Campo de Datos. Lo que no existe es un nodo cuyo fallo apague a los demás.
+</p>
+
+<h2>11. Decisiones de implementación</h2>
+<p>
+El lenguaje es Java 11. El enunciado da puntos extra por usarlo, y el primer parcial ya estaba en Java, así que la bitácora, los sockets de una línea y la forma de las ventanas siguen siendo reconocibles. Cada ventana es un proceso aparte, con su propio log en <code>logs/</code>, para que en el video se vea que son programas distintos y no pestañas de uno solo.
+</p>
+<p>
+El transporte es TCP. Una línea, un mensaje. TCP garantiza el orden dentro de un enlace, y eso importa: por el mismo socket primero viaja la solicitud y después los reclamos, así que una célula no decide antes de haber visto la solicitud. Entre enlaces distintos el orden no está garantizado; por eso la decisión espera 320 ms después del reclamo y no se toma en el instante en que llega el primero.
+</p>
+<p>
+Se usaron códigos de reclamo además de los de solicitud y respuesta. Sin ellos, o todas las células de la operación responden, o hace falta un miembro que reparte turnos. El reclamo es un mensaje más del Campo de Datos: se difunde, se puede perder como cualquier otro, y el respaldo cubre el caso en que la ganadora no llegue a publicar el resultado. El cliente, de todas formas, se queda con la primera respuesta válida.
+</p>
+<p>
+La aritmética está solo en la célula servidora. El nodo no suma. Una interfaz no suma. Si no hay ninguna célula del servicio pedido, el cliente espera cuatro segundos y escribe que no hubo respuesta, en lugar de calcularlo en local y disimular el fallo.
+</p>
+
+<h2>12. Qué se puede mostrar</h2>
+<p>
+<code>scripts/demo.sh</code> compila y abre las veinticuatro ventanas, acomodadas en cuatro columnas. <code>scripts/probar.sh</code> hace la misma malla sin ventanas y comprueba lo siguiente: la malla cierra los tres enlaces de cada nodo; 9+4 produce un solo <code>SUM_RES</code> con valor 13 y las otras tres células de suma ceden; repetir el mismo identificador no vuelve a entregar la solicitud; 8×7 lo atiende solo la multiplicación; 9−4 produce 5; 9÷0 regresa error; y, con una sola célula de suma viva, 20+3 produce 23.
+</p>
+<p>
+El guion para narrar el video está en <code>Script_Presentacion.md</code>. La liga del video se agregará cuando el video esté publicado. El código fuente está en <a href="https://github.com/antonioannese/proyecto-parcial-2-computo-distribuido">github.com/antonioannese/proyecto-parcial-2-computo-distribuido</a>.
+</p>
+
+<h2>13. Conclusión</h2>
+<p>
+La calculadora sigue haciendo las cuatro operaciones, pero ya no depende de un middleware que conozca a todos. El Campo de Datos difunde, el Código de Contenido selecciona y el identificador del mensaje corta los ciclos de la malla. Cuando varias células saben hacer lo mismo, se postulan con su huella y responde la menor; si esa no contesta, responde la siguiente. Quitar una célula o un nodo saca de servicio solo a quien colgaba de ellos. El resto de la malla sigue calculando.
+</p>
+
+</body>
+</html>
