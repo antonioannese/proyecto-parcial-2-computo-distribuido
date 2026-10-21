@@ -28,11 +28,12 @@ Deja visible la bitácora del nodo: líneas `BROADCAST` y `CICLO EVITADO`. El n�
 
 "Ahora, desde el cliente del nodo 3: resta, multiplicación y división. Una multiplicación trae `MUL_REQ`. Las células de suma lo ven y lo ignoran, porque no es su código. Solo responde una célula de multiplicar."
 
-Haz estas tres, con números fáciles de leer:
+Haz estas cuatro, despacio, y deja que se lea el resultado antes de la siguiente:
 
-- 9 − 4 = 5
-- 8 × 7 = 56
-- 9 ÷ 0 → error de división entre cero, no un cierre del programa
+- 9 − 4 = 5. En la bitácora del cliente debe verse `SUB_RES` asociado a esa solicitud.
+- 8 × 7 = 56. Señala `MUL_REQ` al enviar y `MUL_RES` al llegar el 56.
+- 8 ÷ 2 = 4. Esta es la división correcta: el cliente muestra 4 y la bitácora dice `DIV_RES`.
+- 9 ÷ 0. No debe cerrarse el programa: la respuesta llega con error de división entre cero.
 
 ## 5. No hay una célula indispensable
 
