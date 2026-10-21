@@ -51,6 +51,6 @@ Servicios válidos: `SUMA`, `RESTA`, `MULTIPLICACION`, `DIVISION`.
 | Célula cliente (GUI) | `edu.computodistribuido.ads.cliente.ClienteApp` |
 | Célula servidor | `edu.computodistribuido.ads.servidor.ServidorApp` |
 
-El diseño, los códigos de contenido y la forma de evitar ciclos y respuestas duplicadas están en `Reporte_Tecnico.pdf`.
+La explicación técnica del proyecto se encuentra en `Reporte_Tecnico.pdf`.
 
 Video de la demostración: https://drive.google.com/file/d/1B20m8tzX4MjSiu5_uAyjQYxr72L59dam/view?usp=sharing
